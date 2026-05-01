@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Folha Salarial Alagoas Mar/2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #a78bfa;
+    --accent4: #34d399;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --gold: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding: 24px;
+    background-image:
+      radial-gradient(ellipse at 10% 0%, rgba(0,229,255,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 100%, rgba(167,139,250,0.06) 0%, transparent 50%);
+  }
+
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+
+  header h1 span { color: var(--accent); }
+
+  .tag {
+    background: rgba(0,229,255,0.1);
+    border: 1px solid rgba(0,229,255,0.3);
+    color: var(--accent);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+  }
+
+  /* KPI CARDS */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: default;
+  }
+
+  .kpi:hover { transform: translateY(-3px); border-color: var(--accent); }
+
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi:nth-child(1)::before { background: var(--accent); }
+  .kpi:nth-child(2)::before { background: var(--accent2); }
+  .kpi:nth-child(3)::before { background: var(--accent3); }
+  .kpi:nth-child(4)::before { background: var(--accent4); }
+
+  .kpi-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+
+  .kpi:nth-child(1) .kpi-value { color: var(--accent); }
+  .kpi:nth-child(2) .kpi-value { color: var(--accent2); }
+  .kpi:nth-child(3) .kpi-value { color: var(--accent3); }
+  .kpi:nth-child(4) .kpi-value { color: var(--accent4); }
+
+  .kpi-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* GRID */
+  .grid {
+    display: grid;
+    gap: 16px;
+  }
+
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 2fr 1fr; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: #2a3d5a; }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  canvas { max-height: 240px; }
+
+  /* RANKING TABLE */
+  .ranking {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .ranking::-webkit-scrollbar { width: 4px; }
+  .ranking::-webkit-scrollbar-track { background: transparent; }
+  .ranking::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .rank-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    background: var(--surface2);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  .rank-item:hover { background: #1e2d45; }
+
+  .rank-num {
+    font-size: 10px;
+    color: var(--muted);
+    width: 18px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .rank-bar-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .rank-name {
+    font-size: 10px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  .rank-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 1s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  .rank-val {
+    font-size: 10px;
+    color: var(--accent);
+    flex-shrink: 0;
+    text-align: right;
+    min-width: 60px;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 600;
+  }
+
+  .tab:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+
+  /* TOOLTIP */
+  .tooltip-box {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 100;
+    display: none;
+    max-width: 240px;
+    line-height: 1.6;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .row-mb { margin-bottom: 16px; }
+
+  footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="tooltip-box" id="tooltip"></div>
+
+<header>
+  <div>
+    <h1>FOLHA SALARIAL<br><span>ESTADO DE ALAGOAS</span></h1>
+  </div>
+  <div style="text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+    <span class="tag">MARÇO / 2026</span>
+    <span style="font-size:10px;color:var(--muted)">46.024 servidores ativos</span>
+  </div>
+</header>
+
+<!-- KPIs -->
+<div class="kpis row-mb">
+  <div class="kpi">
+    <div class="kpi-label">Gasto Total Mês 3</div>
+    <div class="kpi-value">R$ 260M</div>
+    <div class="kpi-sub">R$ 260.084.767,61</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Total de Servidores</div>
+    <div class="kpi-value">46.024</div>
+    <div class="kpi-sub">Mês de referência: março</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Salário Médio Geral</div>
+    <div class="kpi-value">R$ 5.651</div>
+    <div class="kpi-sub">Média por servidor</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Maior Folha</div>
+    <div class="kpi-value">SEDUC</div>
+    <div class="kpi-sub">R$ 71,7M · 20.433 servidores</div>
+  </div>
+</div>
+
+<!-- ROW 1: barras horizontais + pizza -->
+<div class="grid grid-2 row-mb">
+
+  <!-- Ranking interativo -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent)"></span>RANKING POR ÓRGÃO</div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('func')">Nº Servidores</button>
+      <button class="tab" onclick="switchTab('sal')">Total Salários</button>
+      <button class="tab" onclick="switchTab('med')">Salário Médio</button>
+    </div>
+    <div class="ranking" id="ranking"></div>
+  </div>
+
+  <!-- Doughnut distribuição -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent3)"></span>DISTRIBUIÇÃO POR ÓRGÃO (TOP 6)</div>
+    <canvas id="doughnutChart"></canvas>
+    <div id="doughnut-legend" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px"></div>
+  </div>
+</div>
+
+<!-- ROW 2: faixas + linha salario medio -->
+<div class="grid grid-2 row-mb">
+
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>DISTRIBUIÇÃO POR FAIXA SALARIAL</div>
+    <canvas id="faixaChart"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent4)"></span>SALÁRIO MÉDIO POR ÓRGÃO (TOP 8)</div>
+    <canvas id="mediaChart"></canvas>
+  </div>
+
+</div>
+
+<!-- ROW 3: barras agrupadas top 6 -->
+<div class="card row-mb">
+  <div class="card-title"><span class="dot" style="background:var(--gold)"></span>COMPARATIVO: SERVIDORES vs GASTO TOTAL — TOP 6 ÓRGÃOS</div>
+  <canvas id="comparativoChart" style="max-height:200px"></canvas>
+</div>
+
+<footer>
+  <span>FONTE: Relatório de Folha Salarial — Estado de Alagoas · Março 2026</span>
+  <span>gerado com Python + Chart.js</span>
+</footer>
+
+<script>
+// ─── DADOS ───────────────────────────────────────────────
+const orgaosFull = [
+  "SECRETARIA DE ESTADO DA EDUCACAO",
+  "POLICIA MILITAR DO ESTADO DE ALAGOAS E PMALPREV",
+  "SECRETARIA DE ESTADO DA SAUDE",
+  "UNIV. ESTADUAL DE CIENCIAS DA SAUDE DE AL",
+  "POLICIA CIVIL DO ESTADO DE ALAGOAS",
+  "CORPO DE BOMBEIROS MILITAR DE AL E CBMALPREV",
+  "SEC. DE RESSOCIALIZACAO E INCLUSAO SOCIAL",
+  "SECRETARIA DE ESTADO DA FAZENDA",
+  "SECRETARIA DE ESTADO DE GOVERNO",
+  "DEPTO ESTADUAL DE TRANSITO DE ALAGOAS"
+];
+const orgaosShort = ["SEDUC","PMAL","SESAU","UNCISAL","PC","CBMAL","SERIS","SEFAZ","SEGOV","DETRAN"];
+
+const qtdFuncionarios = [20433, 7215, 4894, 2724, 2057, 1142, 928, 833, 560, 490];
+const totalSalarios   = [71770735, 55911858, 22556989, 12396730, 31617429, 10642659, 8769096, 13045855, 4278396, 3638332];
+const salarioMedio    = [17113.74, 15661.29, 15370.65, 9449.45, 9319.31, 8524.35, 8308.16, 8065.09, 7749.39, 7640.70];
+const salarioMedioOrgaos = ["PROCURADORIA GERAL","SEFAZ","POLICIA CIVIL","SERIS","CBMAL","PERÍCIA OFICIAL","UNEAL","SSP","PMAL","GABINETE CIVIL"];
+const salarioMedioVals = [17113.74, 15661.29, 15370.65, 9449.45, 9319.31, 8524.35, 8308.16, 8065.09, 7749.39, 7640.70];
+
+const faixasLabels = ['até 2k','2k-4k','4k-6k','6k-8k','8k-10k','10k-15k','15k-20k','20k+'];
+const faixasQtd    = [5448, 14037, 12518, 6877, 2601, 2510, 990, 1043];
+
+const COLORS = ['#00e5ff','#ff6b35','#a78bfa','#34d399','#fbbf24','#f472b6','#60a5fa','#fb923c'];
+
+// ─── RANKING ─────────────────────────────────────────────
+const tabData = {
+  func: { vals: qtdFuncionarios, fmt: v => v.toLocaleString('pt-BR'), color: '#00e5ff' },
+  sal:  { vals: totalSalarios,   fmt: v => 'R$ ' + (v/1e6).toFixed(1) + 'M', color: '#ff6b35' },
+  med:  { vals: [17113.74,15661.29,15370.65,9449.45,9319.31,8524.35,8308.16,8065.09,7749.39,7640.70],
+          fmt: v => 'R$ ' + v.toLocaleString('pt-BR',{maximumFractionDigits:0}), color: '#a78bfa',
+          names: salarioMedioOrgaos }
+};
+
+let currentTab = 'func';
+
+function switchTab(t) {
+  currentTab = t;
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    el.classList.toggle('active', ['func','sal','med'][i] === t);
+  });
+  renderRanking();
+}
+
+function renderRanking() {
+  const d = tabData[currentTab];
+  const names = d.names || orgaosShort;
+  const max = Math.max(...d.vals);
+  const el = document.getElementById('ranking');
+  el.innerHTML = '';
+  d.vals.forEach((v, i) => {
+    const pct = (v / max * 100).toFixed(1);
+    el.innerHTML += `
+      <div class="rank-item">
+        <span class="rank-num">${i+1}</span>
+        <div class="rank-bar-wrap">
+          <div class="rank-name">${names[i]}</div>
+          <div class="rank-bar" style="width:${pct}%;background:${d.color}"></div>
+        </div>
+        <span class="rank-val" style="color:${d.color}">${d.fmt(v)}</span>
+      </div>`;
+  });
+}
+
+renderRanking();
+
+// ─── DOUGHNUT ─────────────────────────────────────────────
+const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+const top6sal = totalSalarios.slice(0,6);
+const top6names = orgaosShort.slice(0,6);
+const outros = totalSalarios.slice(6).reduce((a,b)=>a+b,0);
+
+new Chart(doughnutCtx, {
+  type: 'doughnut',
+  data: {
+    labels: [...top6names, 'OUTROS'],
+    datasets: [{
+      data: [...top6sal, outros],
+      backgroundColor: [...COLORS.slice(0,6), '#2a3d5a'],
+      borderColor: '#0a0e1a',
+      borderWidth: 3,
+      hoverOffset: 10
+    }]
+  },
+  options: {
+    cutout: '68%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' R$ ' + (ctx.raw/1e6).toFixed(2) + 'M'
+        },
+        backgroundColor: '#1a2236',
+        borderColor: '#1e2d45',
+        borderWidth: 1,
+        titleColor: '#e2e8f0',
+        bodyColor: '#00e5ff',
+        padding: 10
+      }
+    }
+  }
+});
+
+// Legend manual
+const legEl = document.getElementById('doughnut-legend');
+[...top6names,'OUTROS'].forEach((n,i) => {
+  legEl.innerHTML += `<span style="display:flex;align-items:center;gap:4px;font-size:9px;color:#94a3b8">
+    <span style="width:8px;height:8px;border-radius:2px;background:${i<6?COLORS[i]:'#2a3d5a'};display:inline-block"></span>${n}</span>`;
+});
+
+// ─── FAIXAS ───────────────────────────────────────────────
+const faixaCtx = document.getElementById('faixaChart').getContext('2d');
+new Chart(faixaCtx, {
+  type: 'bar',
+  data: {
+    labels: faixasLabels,
+    datasets: [{
+      label: 'Servidores',
+      data: faixasQtd,
+      backgroundColor: faixasQtd.map((v,i) => `hsla(${180+i*15},100%,60%,0.75)`),
+      borderRadius: 5,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' ' + ctx.raw.toLocaleString('pt-BR') + ' servidores'
+        },
+        backgroundColor: '#1a2236', borderColor: '#1e2d45', borderWidth: 1,
+        titleColor: '#e2e8f0', bodyColor: '#00e5ff', padding: 10
+      }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+      y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { size: 10 },
+           callback: v => v.toLocaleString('pt-BR') } }
+    }
+  }
+});
+
+// ─── MEDIA ────────────────────────────────────────────────
+const mediaCtx = document.getElementById('mediaChart').getContext('2d');
+new Chart(mediaCtx, {
+  type: 'bar',
+  data: {
+    labels: salarioMedioOrgaos.slice(0,8),
+    datasets: [{
+      label: 'Salário Médio',
+      data: salarioMedioVals.slice(0,8),
+      backgroundColor: 'rgba(52,211,153,0.2)',
+      borderColor: '#34d399',
+      borderWidth: 2,
+      borderRadius: 5,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' R$ ' + ctx.raw.toLocaleString('pt-BR', {minimumFractionDigits:2})
+        },
+        backgroundColor: '#1a2236', borderColor: '#1e2d45', borderWidth: 1,
+        titleColor: '#e2e8f0', bodyColor: '#34d399', padding: 10
+      }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { size: 10 },
+           callback: v => 'R$ ' + (v/1000).toFixed(0) + 'k' } },
+      y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#94a3b8', font: { size: 9 } } }
+    }
+  }
+});
+
+// ─── COMPARATIVO ──────────────────────────────────────────
+const compCtx = document.getElementById('comparativoChart').getContext('2d');
+new Chart(compCtx, {
+  type: 'bar',
+  data: {
+    labels: orgaosShort.slice(0,6),
+    datasets: [
+      {
+        label: 'Servidores',
+        data: qtdFuncionarios.slice(0,6),
+        backgroundColor: 'rgba(0,229,255,0.25)',
+        borderColor: '#00e5ff',
+        borderWidth: 2,
+        borderRadius: 4,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Total Salários (R$)',
+        data: totalSalarios.slice(0,6),
+        backgroundColor: 'rgba(255,107,53,0.25)',
+        borderColor: '#ff6b35',
+        borderWidth: 2,
+        borderRadius: 4,
+        yAxisID: 'y1',
+      }
+    ]
+  },
+  options: {
+    plugins: {
+      legend: {
+        labels: { color: '#94a3b8', font: { size: 10, family: 'DM Mono' }, boxWidth: 12 }
+      },
+      tooltip: {
+        backgroundColor: '#1a2236', borderColor: '#1e2d45', borderWidth: 1,
+        titleColor: '#e2e8f0', bodyColor: '#e2e8f0', padding: 10,
+        callbacks: {
+          label: ctx => ctx.datasetIndex === 0
+            ? ' ' + ctx.raw.toLocaleString('pt-BR') + ' servidores'
+            : ' R$ ' + (ctx.raw/1e6).toFixed(1) + 'M'
+        }
+      }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+      y: {
+        position: 'left',
+        grid: { color: 'rgba(255,255,255,0.04)' },
+        ticks: { color: '#00e5ff', font: { size: 9 }, callback: v => v.toLocaleString('pt-BR') }
+      },
+      y1: {
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        ticks: { color: '#ff6b35', font: { size: 9 }, callback: v => 'R$' + (v/1e6).toFixed(0) + 'M' }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
